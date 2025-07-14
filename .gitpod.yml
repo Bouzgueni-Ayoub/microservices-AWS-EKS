@@ -11,7 +11,6 @@ tasks:
   - name: aws-cli
     before:
       ./bin/aws-cli-install
-      aws configure set cli_auto_prompt on-partial
 
   - name: clear
     command: clear
