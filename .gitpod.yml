@@ -1,16 +1,17 @@
 tasks:
   - name: terraform
-    before :
-            ./bin/terraform-cli-install
+    before:
+      ./bin/terraform-cli-install
+
   - name: tools
-    before : 
-            sudo apt-get install tree
+    before:
+      sudo apt-get update
+      sudo apt-get install -y tree
+
   - name: aws-cli
-    env: 
-      AWS_CLI_AUTO_PROMPT:  on-partial
-    before: 
-              ./bin/aws-cli-install
-  - name: chmod main key
-    command: chmod 600 /workspace/pfs-ensa/terra/main-key.pem
+    before:
+      ./bin/aws-cli-install
+      aws configure set cli_auto_prompt on-partial
+
   - name: clear
     command: clear
