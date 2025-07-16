@@ -14,7 +14,7 @@ tasks:
 
   - name: kubectl
     before:
-      ./bin/kubetcl
+      ./bin/kubectl
 
   - name: clear
     command: clear
