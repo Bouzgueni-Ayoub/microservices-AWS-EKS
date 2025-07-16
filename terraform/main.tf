@@ -8,7 +8,7 @@ terraform {
   backend "s3" {
     bucket = "backend-aws-eks-project"
     key    = "terraform.tfstate"
-    region = "us-east-1"
+    region = "eu-central-1"
   }
 }
 
@@ -17,3 +17,6 @@ provider "aws" {
   region = "eu-central-1"
 }
 
+resource "aws_vpc" "EKS" {
+  cidr_block = "10.0.0.0/16"
+}

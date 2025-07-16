@@ -12,5 +12,9 @@ tasks:
     before:
       ./bin/aws-cli-install
 
+  - name: kubectl
+    before:
+      ./bin/kubetcl
+
   - name: clear
     command: clear
