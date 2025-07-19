@@ -76,3 +76,9 @@ resource "aws_launch_template" "eks_node_template" {
     create_before_destroy = true
   }
 }
+
+# EKS ADDONS 
+resource "aws_eks_addon" "vpc_cni" {
+  cluster_name = aws_eks_cluster.eks_cluster.name
+  addon_name   = "vpc-cni"
+}
