@@ -5,7 +5,10 @@ resource "aws_eks_cluster" "eks_cluster" {
 
   vpc_config {
     subnet_ids = [
-      aws_subnet.public_subnet.id
+      aws_subnet.public_subnet_1a.id,
+      aws_subnet.public_subnet_1b.id,
+      aws_subnet.private_subnet_1a.id,
+      aws_subnet.private_subnet_1b.id
     ]
   }
 
@@ -37,7 +40,7 @@ resource "aws_eks_node_group" "eks_node_group" {
   cluster_name    = aws_eks_cluster.eks_cluster.name
   node_group_name = "eks-node-group"
   node_role_arn   = aws_iam_role.eks_node_role.arn
-  subnet_ids      = [aws_subnet.private_subnet.id]
+  subnet_ids      = [aws_subnet.private_subnet_1a.id,aws_subnet.private_subnet_1b.id]
 
   scaling_config {
     desired_size = 2
@@ -62,6 +65,12 @@ resource "aws_launch_template" "eks_node_template" {
   instance_type = "t3.medium"
 
   vpc_security_group_ids = [aws_security_group.eks_node_sg.id]
+
+  user_data = base64encode(<<-EOT
+    #!/bin/bash
+    /etc/eks/bootstrap.sh ${aws_eks_cluster.eks_cluster.name}
+  EOT
+  )
 
   lifecycle {
     create_before_destroy = true
