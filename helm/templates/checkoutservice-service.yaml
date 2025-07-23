@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.checkoutservice.name }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ .Values.checkoutservice.name }}
+  ports:
+    - protocol: TCP
+      port: {{ .Values.checkoutservice.servicePort }}
+      targetPort: {{ .Values.checkoutservice.containerPort }}

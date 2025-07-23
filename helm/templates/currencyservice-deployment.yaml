@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.currencyservice.name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.currencyservice.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.currencyservice.name }}
+    spec:
+      containers:
+        - name: {{ .Values.currencyservice.containerName }}
+          image: {{ .Values.currencyservice.image }}
+          ports:
+            - containerPort: {{ .Values.currencyservice.containerPort }}
+          env:
+            - name: PORT
+              value: "{{ .Values.currencyservice.env.PORT }}"
+          readinessProbe:
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.currencyservice.containerPort }}"]
+          livenessProbe:
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.currencyservice.containerPort }}"]
+          resources:
+            requests:
+              cpu: {{ .Values.currencyservice.resources.requests.cpu }}
+              memory: {{ .Values.currencyservice.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.currencyservice.resources.limits.cpu }}
+              memory: {{ .Values.currencyservice.resources.limits.memory }}

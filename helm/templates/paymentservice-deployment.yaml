@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.paymentservice.name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.paymentservice.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.paymentservice.name }}
+    spec:
+      containers:
+        - name: {{ .Values.paymentservice.containerName }}
+          image: {{ .Values.paymentservice.image }}
+          ports:
+            - containerPort: {{ .Values.paymentservice.containerPort }}
+          env:
+            - name: PORT
+              value: "{{ .Values.paymentservice.env.PORT }}"
+          readinessProbe:
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.paymentservice.containerPort }}"]
+          livenessProbe:
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.paymentservice.containerPort }}"]
+          resources:
+            requests:
+              cpu: {{ .Values.paymentservice.resources.requests.cpu }}
+              memory: {{ .Values.paymentservice.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.paymentservice.resources.limits.cpu }}
+              memory: {{ .Values.paymentservice.resources.limits.memory }}

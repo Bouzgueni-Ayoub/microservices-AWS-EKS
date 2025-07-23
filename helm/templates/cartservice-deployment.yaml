@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.cartservice.name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.cartservice.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.cartservice.name }}
+    spec:
+      containers:
+        - name: {{ .Values.cartservice.containerName }}
+          image: {{ .Values.cartservice.image }}
+          ports:
+            - containerPort: {{ .Values.cartservice.containerPort }}
+          env:
+            - name: REDIS_ADDR
+              value: "{{ .Values.cartservice.env.REDIS_ADDR }}"
+          resources:
+            requests:
+              cpu: {{ .Values.cartservice.resources.requests.cpu }}
+              memory: {{ .Values.cartservice.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.cartservice.resources.limits.cpu }}
+              memory: {{ .Values.cartservice.resources.limits.memory }}
+          readinessProbe:
+            initialDelaySeconds: 15
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.cartservice.containerPort }}", "-rpc-timeout=5s"]
+          livenessProbe:
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.cartservice.containerPort }}", "-rpc-timeout=5s"]

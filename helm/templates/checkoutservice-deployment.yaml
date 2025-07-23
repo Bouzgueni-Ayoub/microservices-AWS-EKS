@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.checkoutservice.name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.checkoutservice.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.checkoutservice.name }}
+    spec:
+      containers:
+        - name: {{ .Values.checkoutservice.containerName }}
+          image: {{ .Values.checkoutservice.image }}
+          ports:
+            - containerPort: {{ .Values.checkoutservice.containerPort }}
+          env:
+            - name: PORT
+              value: "{{ .Values.checkoutservice.env.PORT }}"
+            - name: PRODUCT_CATALOG_SERVICE_ADDR
+              value: "{{ .Values.checkoutservice.env.PRODUCT_CATALOG_SERVICE_ADDR }}"
+            - name: SHIPPING_SERVICE_ADDR
+              value: "{{ .Values.checkoutservice.env.SHIPPING_SERVICE_ADDR }}"
+            - name: PAYMENT_SERVICE_ADDR
+              value: "{{ .Values.checkoutservice.env.PAYMENT_SERVICE_ADDR }}"
+            - name: EMAIL_SERVICE_ADDR
+              value: "{{ .Values.checkoutservice.env.EMAIL_SERVICE_ADDR }}"
+            - name: CURRENCY_SERVICE_ADDR
+              value: "{{ .Values.checkoutservice.env.CURRENCY_SERVICE_ADDR }}"
+            - name: CART_SERVICE_ADDR
+              value: "{{ .Values.checkoutservice.env.CART_SERVICE_ADDR }}"
+          readinessProbe:
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.checkoutservice.containerPort }}"]
+          livenessProbe:
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.checkoutservice.containerPort }}"]
+          resources:
+            requests:
+              cpu: {{ .Values.checkoutservice.resources.requests.cpu }}
+              memory: {{ .Values.checkoutservice.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.checkoutservice.resources.limits.cpu }}
+              memory: {{ .Values.checkoutservice.resources.limits.memory }}

@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.shippingservice.name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.shippingservice.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.shippingservice.name }}
+    spec:
+      containers:
+        - name: {{ .Values.shippingservice.containerName }}
+          image: {{ .Values.shippingservice.image }}
+          ports:
+            - containerPort: {{ .Values.shippingservice.containerPort }}
+          env:
+            - name: PORT
+              value: "{{ .Values.shippingservice.env.PORT }}"
+          readinessProbe:
+            periodSeconds: 5
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.shippingservice.containerPort }}"]
+          livenessProbe:
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.shippingservice.containerPort }}"]
+          resources:
+            requests:
+              cpu: {{ .Values.shippingservice.resources.requests.cpu }}
+              memory: {{ .Values.shippingservice.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.shippingservice.resources.limits.cpu }}
+              memory: {{ .Values.shippingservice.resources.limits.memory }}
