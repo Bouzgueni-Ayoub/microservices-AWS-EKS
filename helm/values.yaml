@@ -1,7 +1,7 @@
 emailservice:
   name: emailservice
   containerName: server
-  image: akiltipu/emailservice:latest
+  image: 054037117483.dkr.ecr.eu-central-1.amazonaws.com/emailservice:latest
   containerPort: 8080
   servicePort: 5000
 
@@ -22,7 +22,7 @@ emailservice:
 recommendationservice:
   name: recommendationservice
   containerName: server
-  image: akiltipu/recommendationservice:latest
+  image: 054037117483.dkr.ecr.eu-central-1.amazonaws.com/recommendationservice:latest
   containerPort: 8080
   servicePort: 8080
 
@@ -44,7 +44,7 @@ recommendationservice:
 paymentservice:
   name: paymentservice
   containerName: server
-  image: akiltipu/paymentservice:latest
+  image: 054037117483.dkr.ecr.eu-central-1.amazonaws.com/paymentservice:latest
   containerPort: 50051
   servicePort: 50051
 
@@ -62,7 +62,7 @@ paymentservice:
 productcatalogservice:
   name: productcatalogservice
   containerName: server
-  image: akiltipu/productcatalogservice:latest
+  image: 054037117483.dkr.ecr.eu-central-1.amazonaws.com/productcatalogservice:latest
   containerPort: 3550
   servicePort: 3550
 
@@ -80,7 +80,7 @@ productcatalogservice:
 currencyservice:
   name: currencyservice
   containerName: server
-  image: akiltipu/currencyservice:latest
+  image: 054037117483.dkr.ecr.eu-central-1.amazonaws.com/currencyservice:latest
   containerPort: 7000
   servicePort: 7000
 
@@ -98,7 +98,7 @@ currencyservice:
 shippingservice:
   name: shippingservice
   containerName: server
-  image: akiltipu/shippingservice:latest
+  image: 054037117483.dkr.ecr.eu-central-1.amazonaws.com/shippingservice:latest
   containerPort: 50051
   servicePort: 50051
 
@@ -116,7 +116,7 @@ shippingservice:
 adservice:
   name: adservice
   containerName: server
-  image: akiltipu/adservice:latest
+  image: 054037117483.dkr.ecr.eu-central-1.amazonaws.com/adservice:latest
   containerPort: 9555
   servicePort: 9555
 
@@ -134,7 +134,7 @@ adservice:
 cartservice:
   name: cartservice
   containerName: server
-  image: akiltipu/cartservice:latest
+  image: 054037117483.dkr.ecr.eu-central-1.amazonaws.com/cartservice:latest
   containerPort: 7070
   servicePort: 7070
 
@@ -152,7 +152,7 @@ cartservice:
 checkoutservice:
   name: checkoutservice
   containerName: server
-  image: akiltipu/checkoutservice:latest
+  image: 054037117483.dkr.ecr.eu-central-1.amazonaws.com/checkoutservice:latest
   containerPort: 5050
   servicePort: 5050
 
@@ -177,7 +177,7 @@ frontend:
   name: frontend
   externalServiceName: frontend-external
   containerName: server
-  image: akiltipu/frontend:latest
+  image: 054037117483.dkr.ecr.eu-central-1.amazonaws.com/frontend:latest
   containerPort: 8080
   servicePort: 80
 
@@ -217,3 +217,8 @@ rediscart:
     limits:
       cpu: 125m
       memory: 256Mi
+
+shoppingAssistantService:
+  create: true
+  name: shoppingassistantservice
+  image: 054037117483.dkr.ecr.eu-central-1.amazonaws.com/shoppingassistantservice:latest

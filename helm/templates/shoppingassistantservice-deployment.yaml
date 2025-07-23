@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.shoppingAssistantService.name }}
+  labels:
+    app: {{ .Values.shoppingAssistantService.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.shoppingAssistantService.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.shoppingAssistantService.name }}
+    spec:
+      containers:
+        - name: shoppingassistantservice
+          image: {{ .Values.shoppingAssistantService.image }}
+          ports:
+            - containerPort: 8080
+
