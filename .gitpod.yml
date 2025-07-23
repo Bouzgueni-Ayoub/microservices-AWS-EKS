@@ -20,5 +20,8 @@ tasks:
     before:
       ./bin/helm-install
 
+  - name: tree
+    command: sudo apt-get install tree
+
   - name: clear
     command: clear

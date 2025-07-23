@@ -1,0 +1,42 @@
+emailservice:
+  name: emailservice
+  containerName: server
+  image: akiltipu/emailservice:latest
+  containerPort: 8080
+  servicePort: 5000
+
+  env:
+    PORT: "8080"
+    DISABLE_TRACING: "1"
+    DISABLE_PROFILER: "1"
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+      
+recommendationservice:
+  name: recommendationservice
+  containerName: server
+  image: akiltipu/recommendationservice:latest
+  containerPort: 8080
+  servicePort: 8080
+
+  env:
+    PORT: "8080"
+    PRODUCT_CATALOG_SERVICE_ADDR: "productcatalogservice:3550"
+    DISABLE_TRACING: "1"
+    DISABLE_PROFILER: "1"
+    DISABLE_DEBUGGER: "1"
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 220Mi
+    limits:
+      cpu: 200m
+      memory: 450Mi
