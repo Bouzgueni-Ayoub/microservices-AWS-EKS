@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.rediscart.name }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ .Values.rediscart.name }}
+  ports:
+    - name: redis
+      port: {{ .Values.rediscart.servicePort }}
+      targetPort: {{ .Values.rediscart.containerPort }}

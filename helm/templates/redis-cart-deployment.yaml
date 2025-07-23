@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.rediscart.name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.rediscart.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.rediscart.name }}
+    spec:
+      containers:
+        - name: {{ .Values.rediscart.containerName }}
+          image: {{ .Values.rediscart.image }}
+          ports:
+            - containerPort: {{ .Values.rediscart.containerPort }}
+          readinessProbe:
+            periodSeconds: 5
+            tcpSocket:
+              port: {{ .Values.rediscart.containerPort }}
+          livenessProbe:
+            periodSeconds: 5
+            tcpSocket:
+              port: {{ .Values.rediscart.containerPort }}
+          volumeMounts:
+            - mountPath: {{ .Values.rediscart.volume.mountPath }}
+              name: {{ .Values.rediscart.volume.name }}
+          resources:
+            requests:
+              cpu: {{ .Values.rediscart.resources.requests.cpu }}
+              memory: {{ .Values.rediscart.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.rediscart.resources.limits.cpu }}
+              memory: {{ .Values.rediscart.resources.limits.memory }}
+      volumes:
+        - name: {{ .Values.rediscart.volume.name }}
+          emptyDir: {}
