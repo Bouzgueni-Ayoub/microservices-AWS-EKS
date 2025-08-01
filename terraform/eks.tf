@@ -68,6 +68,7 @@ resource "aws_launch_template" "eks_node_template" {
   name_prefix   = "eks-node-"
   image_id      = data.aws_ami.eks_worker_ami.id
   instance_type = "t3.medium"
+  
 
   vpc_security_group_ids = [aws_security_group.eks_node_sg.id]
 

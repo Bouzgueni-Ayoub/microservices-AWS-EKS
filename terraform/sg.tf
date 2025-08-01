@@ -52,13 +52,6 @@ resource "aws_security_group" "eks_node_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    description = "Allow Port 443 to API Server"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
 
   # Allow inbound HTTP traffic from Load Balancer (e.g. ALB)
@@ -68,14 +61,6 @@ resource "aws_security_group" "eks_node_sg" {
   to_port     = 80
   protocol    = "tcp"
   cidr_blocks = ["0.0.0.0/0"]
-  }
-  # Allow access from control plane to kubelet on port 10250
-  ingress {
-    description = "EKS Control Plane to Node kubelet"
-    from_port   = 10250
-    to_port     = 10250
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # or restrict to EKS control plane IPs
   }
 
   # Outbound access
@@ -94,26 +79,13 @@ resource "aws_security_group" "eks_node_sg" {
 }
 
 ###### experimenting 
-
-data "aws_security_group" "eks_cp_sg" {
-  filter {
-    name   = "tag:aws:eks:cluster-name"
-    values = ["my-eks-cluster"]
-  }
-
-  filter {
-    name   = "group-name"
-    values = ["eks-cluster-sg-my-eks-cluster-*"]
-  }
-  depends_on = [ aws_eks_cluster.eks_cluster ]
-}
 resource "aws_security_group_rule" "allow_cp_to_nodes_443" {
   type                     = "ingress"
   from_port                = 443
   to_port                  = 443
   protocol                 = "tcp"
   security_group_id        = aws_security_group.eks_node_sg.id
-  source_security_group_id = data.aws_security_group.eks_cp_sg.id
+  source_security_group_id = aws_eks_cluster.eks_cluster.vpc_config[0].cluster_security_group_id
   description              = "EKS control plane to node 443"
 }
 
@@ -123,7 +95,6 @@ resource "aws_security_group_rule" "allow_cp_to_nodes_10250" {
   to_port                  = 10250
   protocol                 = "tcp"
   security_group_id        = aws_security_group.eks_node_sg.id
-  source_security_group_id = data.aws_security_group.eks_cp_sg.id
+  source_security_group_id = aws_eks_cluster.eks_cluster.vpc_config[0].cluster_security_group_id
   description              = "EKS control plane to node 10250"
 }
-
