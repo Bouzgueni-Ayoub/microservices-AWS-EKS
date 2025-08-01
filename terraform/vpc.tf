@@ -1,6 +1,7 @@
 resource "aws_vpc" "eks_vpc" {
   cidr_block       = "10.0.0.0/16"
-
+  enable_dns_support   = true
+  enable_dns_hostnames = true
   tags = {
     Name = "Main VPC"
   }
@@ -149,4 +150,13 @@ resource "aws_route_table_association" "private_assoc_a" {
 resource "aws_route_table_association" "private_assoc_b" {
   subnet_id      = aws_subnet.private_subnet_1b.id
   route_table_id = aws_route_table.private_rt_b.id
+}
+
+resource "aws_vpc_dhcp_options" "dns_resolver" {
+  domain_name_servers = ["AmazonProvidedDNS"]
+}
+
+resource "aws_vpc_dhcp_options_association" "dns_association" {
+  vpc_id          = aws_vpc.eks_vpc.id
+  dhcp_options_id = aws_vpc_dhcp_options.dns_resolver.id
 }

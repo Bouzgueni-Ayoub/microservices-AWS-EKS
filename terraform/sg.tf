@@ -88,5 +88,41 @@ resource "aws_security_group" "eks_node_sg" {
 
   tags = {
     Name = "eks-node-sg"
+    "kubernetes.io/cluster/my-eks-cluster" = "owned"
+
   }
 }
+
+###### experimenting 
+
+data "aws_security_group" "eks_cp_sg" {
+  filter {
+    name   = "tag:aws:eks:cluster-name"
+    values = ["my-eks-cluster"]
+  }
+
+  filter {
+    name   = "group-name"
+    values = ["eks-cluster-sg-my-eks-cluster-*"]
+  }
+}
+resource "aws_security_group_rule" "allow_cp_to_nodes_443" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.eks_node_sg.id
+  source_security_group_id = data.aws_security_group.eks_cp_sg.id
+  description              = "EKS control plane to node 443"
+}
+
+resource "aws_security_group_rule" "allow_cp_to_nodes_10250" {
+  type                     = "ingress"
+  from_port                = 10250
+  to_port                  = 10250
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.eks_node_sg.id
+  source_security_group_id = data.aws_security_group.eks_cp_sg.id
+  description              = "EKS control plane to node 10250"
+}
+
