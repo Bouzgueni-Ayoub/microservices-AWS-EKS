@@ -10,12 +10,7 @@ resource "aws_security_group" "jenkings_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  
              # SSH
    ingress {
     from_port   = 22
@@ -55,6 +50,14 @@ resource "aws_security_group" "eks_node_sg" {
     to_port     = 32767
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+  # Allow inbound HTTP traffic from Load Balancer (e.g. ALB)
+  ingress {
+  description = "Allow HTTP traffic from ELB"
+  from_port   = 80
+  to_port     = 80
+  protocol    = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
   }
 
   # Outbound access
