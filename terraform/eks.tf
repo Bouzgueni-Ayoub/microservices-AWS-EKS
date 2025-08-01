@@ -2,7 +2,7 @@
 resource "aws_eks_cluster" "eks_cluster" {
   name     = "my-eks-cluster"
   role_arn = aws_iam_role.eks_cluster_role.arn
-
+  
   vpc_config {
     subnet_ids = [
       aws_subnet.public_subnet_1a.id,
@@ -10,7 +10,12 @@ resource "aws_eks_cluster" "eks_cluster" {
       aws_subnet.private_subnet_1a.id,
       aws_subnet.private_subnet_1b.id
     ]
+    endpoint_private_access = true
+    endpoint_public_access  = true
+    
+
   }
+  
 
   depends_on = [
     aws_iam_role_policy_attachment.eks_cluster_role_attach
