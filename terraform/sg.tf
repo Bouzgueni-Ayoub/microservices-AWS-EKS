@@ -57,6 +57,7 @@ resource "aws_security_group" "eks_node_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  
 
 
   # Allow inbound HTTP traffic from Load Balancer (e.g. ALB)
@@ -83,3 +84,23 @@ resource "aws_security_group" "eks_node_sg" {
   }
 }
 
+
+resource "aws_security_group_rule" "cp_to_nodes_443" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.eks_node_sg.id
+  source_security_group_id = aws_eks_cluster.eks_cluster.vpc_config[0].cluster_security_group_id
+  description              = "Allow control plane to node on port 443"
+}
+
+resource "aws_security_group_rule" "cp_to_nodes_10250" {
+  type                     = "ingress"
+  from_port                = 10250
+  to_port                  = 10250
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.eks_node_sg.id
+  source_security_group_id = aws_eks_cluster.eks_cluster.vpc_config[0].cluster_security_group_id
+  description              = "Allow control plane to node on port 10250"
+}
