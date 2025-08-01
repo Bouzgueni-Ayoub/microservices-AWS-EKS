@@ -59,6 +59,14 @@ resource "aws_security_group" "eks_node_sg" {
   protocol    = "tcp"
   cidr_blocks = ["0.0.0.0/0"]
   }
+  # Allow access from control plane to kubelet on port 10250
+  ingress {
+    description = "EKS Control Plane to Node kubelet"
+    from_port   = 10250
+    to_port     = 10250
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # or restrict to EKS control plane IPs
+  }
 
   # Outbound access
   egress {
