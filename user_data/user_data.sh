@@ -4,6 +4,7 @@ set -e
 echo ">>> Updating system..."
 apt-get update -y
 apt-get upgrade -y
+apt-get install -y unzip openjdk-11-jdk curl gnupg
 
 # Install AWS CLI v2
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -12,6 +13,7 @@ unzip awscliv2.zip
 
 echo ">>> Installing Java..."
 apt-get install -y openjdk-17-jdk
+
 
 echo ">>> Adding Jenkins repo key and source..."
 curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | tee \
