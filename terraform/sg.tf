@@ -105,6 +105,7 @@ data "aws_security_group" "eks_cp_sg" {
     name   = "group-name"
     values = ["eks-cluster-sg-my-eks-cluster-*"]
   }
+  depends_on = [ aws_eks_cluster.eks_cluster ]
 }
 resource "aws_security_group_rule" "allow_cp_to_nodes_443" {
   type                     = "ingress"
