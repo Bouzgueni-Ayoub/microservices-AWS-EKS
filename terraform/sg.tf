@@ -56,7 +56,6 @@ resource "aws_security_group" "eks_node_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-<<<<<<< HEAD
 
 
 
@@ -68,8 +67,6 @@ resource "aws_security_group" "eks_node_sg" {
   protocol    = "tcp"
   cidr_blocks = ["0.0.0.0/0"]
   }
-=======
->>>>>>> parent of 5c5614e (added the rule to  the wrong group lol)
 
   # Outbound access
   egress {
@@ -86,23 +83,3 @@ resource "aws_security_group" "eks_node_sg" {
   }
 }
 
-###### experimenting 
-resource "aws_security_group_rule" "allow_cp_to_nodes_443" {
-  type                     = "ingress"
-  from_port                = 443
-  to_port                  = 443
-  protocol                 = "tcp"
-  security_group_id        = aws_security_group.eks_node_sg.id
-  source_security_group_id = aws_eks_cluster.eks_cluster.vpc_config[0].cluster_security_group_id
-  description              = "EKS control plane to node 443"
-}
-
-resource "aws_security_group_rule" "allow_cp_to_nodes_10250" {
-  type                     = "ingress"
-  from_port                = 10250
-  to_port                  = 10250
-  protocol                 = "tcp"
-  security_group_id        = aws_security_group.eks_node_sg.id
-  source_security_group_id = aws_eks_cluster.eks_cluster.vpc_config[0].cluster_security_group_id
-  description              = "EKS control plane to node 10250"
-}
