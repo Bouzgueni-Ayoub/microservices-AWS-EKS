@@ -10,7 +10,12 @@ resource "aws_security_group" "jenkings_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
              # SSH
    ingress {
     from_port   = 22
@@ -51,6 +56,7 @@ resource "aws_security_group" "eks_node_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+<<<<<<< HEAD
 
 
 
@@ -62,6 +68,8 @@ resource "aws_security_group" "eks_node_sg" {
   protocol    = "tcp"
   cidr_blocks = ["0.0.0.0/0"]
   }
+=======
+>>>>>>> parent of 5c5614e (added the rule to  the wrong group lol)
 
   # Outbound access
   egress {
