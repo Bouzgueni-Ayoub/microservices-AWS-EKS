@@ -51,6 +51,16 @@ resource "aws_security_group" "eks_node_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  ingress {
+    description = "Allow Port 443 to API Server"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+
   # Allow inbound HTTP traffic from Load Balancer (e.g. ALB)
   ingress {
   description = "Allow HTTP traffic from ELB"
