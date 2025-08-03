@@ -68,6 +68,15 @@ resource "aws_security_group" "eks_node_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  # Fix number 4 
+  egress {
+  description = "Allow node to reach cluster IPs"
+  from_port   = 443
+  to_port     = 443
+  protocol    = "tcp"
+  cidr_blocks = ["10.0.0.0/16"] # or use var.vpc_cidr if dynamic
+}
+
 
   tags = {
     Name = "eks-node-sg"
