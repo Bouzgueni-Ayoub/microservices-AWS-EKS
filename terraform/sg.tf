@@ -60,6 +60,7 @@ resource "aws_security_group" "eks_node_sg" {
   cidr_blocks = ["0.0.0.0/0"]
   }
 
+
   # Outbound access
   egress {
     from_port   = 0
@@ -71,4 +72,14 @@ resource "aws_security_group" "eks_node_sg" {
   tags = {
     Name = "eks-node-sg"
   }
+}
+# FIX number 2 for dns issue 
+resource "aws_security_group_rule" "allow_cp_to_nodes_10250" {
+  type                     = "ingress"
+  from_port                = 10250
+  to_port                  = 10250
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.eks_node_sg.id
+  source_security_group_id = aws_eks_cluster.eks_cluster.vpc_config[0].cluster_security_group_id #This refers to the security group created by AWS 
+  description              = "EKS control plane to node kubelet"
 }
