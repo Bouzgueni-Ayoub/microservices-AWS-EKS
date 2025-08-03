@@ -83,3 +83,13 @@ resource "aws_security_group_rule" "allow_cp_to_nodes_10250" {
   source_security_group_id = aws_eks_cluster.eks_cluster.vpc_config[0].cluster_security_group_id #This refers to the security group created by AWS 
   description              = "EKS control plane to node kubelet"
 }
+# Allow EKS control plane to connect TO worker nodes FIX NUMBER 3
+resource "aws_security_group_rule" "allow_cp_to_nodes_443" {
+  type                     = "ingress"                                 # traffic going INTO the node SG
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.eks_node_sg.id         # the node's SG receiving traffic
+  source_security_group_id = aws_eks_cluster.eks_cluster.vpc_config[0].cluster_security_group_id # source: control plane SG
+  description              = "EKS control plane to node 443"
+}
