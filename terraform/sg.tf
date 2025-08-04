@@ -59,6 +59,25 @@ resource "aws_security_group" "eks_node_sg" {
   protocol    = "tcp"
   cidr_blocks = ["0.0.0.0/0"]
   }
+  #FIX 6?? idk anymore
+    # Allow DNS over UDP (cluster IP range)
+  egress {
+    description = "DNS UDP to CoreDNS"
+    from_port   = 53
+    to_port     = 53
+    protocol    = "udp"
+    cidr_blocks = ["172.20.0.0/16"]
+  }
+
+  # Allow DNS over TCP (some DNS queries use TCP fallback)
+  egress {
+    description = "DNS TCP to CoreDNS"
+    from_port   = 53
+    to_port     = 53
+    protocol    = "tcp"
+    cidr_blocks = ["172.20.0.0/16"]
+  }
+
 
 
   # Outbound access
