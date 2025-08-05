@@ -10,6 +10,9 @@ resource "aws_eks_cluster" "eks_cluster" {
       aws_subnet.private_subnet_1a.id,
       aws_subnet.private_subnet_1b.id
     ]
+    endpoint_public_access  = true     # ✅ Enable public access
+    endpoint_private_access = true     # ✅ Enable private access
+    public_access_cidrs     = ["0.0.0.0/0"] # Optional: restrict to trusted IPs
   }
 
   depends_on = [
