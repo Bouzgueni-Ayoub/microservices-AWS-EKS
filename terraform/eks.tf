@@ -10,9 +10,7 @@ resource "aws_eks_cluster" "eks_cluster" {
       aws_subnet.private_subnet_1a.id,
       aws_subnet.private_subnet_1b.id
     ]
-    endpoint_public_access  = true     # ✅ Enable public access
-    endpoint_private_access = true     # ✅ Enable private access
-    public_access_cidrs     = ["0.0.0.0/0"] # Optional: restrict to trusted IPs
+    
   }
 
   depends_on = [
@@ -67,7 +65,9 @@ resource "aws_launch_template" "eks_node_template" {
   image_id      = data.aws_ami.eks_worker_ami.id
   instance_type = "t3.medium"
 
-  vpc_security_group_ids = [aws_security_group.eks_node_sg.id]
+  vpc_security_group_ids = [aws_security_group.eks_node_sg.id,
+                            aws_eks_cluster.eks_cluster.vpc_config[0].cluster_security_group_id 
+    ]
 
   user_data = base64encode(<<-EOT
     #!/bin/bash
