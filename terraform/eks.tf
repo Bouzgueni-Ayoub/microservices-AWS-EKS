@@ -86,6 +86,16 @@ resource "aws_eks_addon" "vpc_cni" {
   addon_name   = "vpc-cni"
 }
 
+resource "aws_eks_addon" "kube_proxy" {
+  cluster_name             = aws_eks_cluster.eks_cluster.name
+  addon_name               = "kube-proxy"
+  addon_version            = "v1.29.1-eksbuild.1" 
+  service_account_role_arn = null  # kube-proxy doesn't need a custom SA
+  depends_on = [
+    aws_eks_cluster.eks_cluster
+  ]
+}
+
 
 # TEMPORARY 
 
