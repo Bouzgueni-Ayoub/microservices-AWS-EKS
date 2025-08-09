@@ -1,27 +1,16 @@
+resource "aws_eks_access_entry" "jenkins" {
+  cluster_name  = aws_eks_cluster.eks_cluster.name
+  principal_arn = "arn:aws:iam::054037117483:role/JenkinsEKSDeployerRole"
+  type          = "STANDARD"
+  user_name     = "jenkins:{{SessionName}}"
+}
 
-resource "kubernetes_config_map_v1" "aws_auth" {
-  metadata {
-    name      = "aws-auth"
-    namespace = "kube-system"
+resource "aws_eks_access_policy_association" "jenkins_admin" {
+  cluster_name  = aws_eks_cluster.eks_cluster.name
+  principal_arn = aws_eks_access_entry.jenkins.principal_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
   }
-
-  data = {
-    mapRoles = yamlencode([
-      {
-        rolearn  = aws_iam_role.eks_node_role.arn
-        username = "system:node:{{EC2PrivateDNSName}}"
-        groups   = ["system:bootstrappers", "system:nodes"]
-      },
-      {
-        rolearn  = "arn:aws:iam::054037117483:role/JenkinsEKSDeployerRole"
-        username = "jenkins"
-        groups   = ["system:masters"] # 
-      }
-    ])
-  }
-
-  depends_on = [
-    aws_eks_cluster.eks_cluster,
-    aws_eks_node_group.eks_node_group,
-  ]
 }
