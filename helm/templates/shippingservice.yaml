@@ -54,7 +54,7 @@ spec:
               - ALL
           privileged: false
           readOnlyRootFilesystem: true
-        image: {{ .Values.images.repository }}/{{ .Values.shippingService.name }}:{{ .Values.images.tag | default .Chart.AppVersion }}
+        image: {{ default .Values.images.repository .Values.shippingService.image.repository }}/{{ .Values.shippingService.name }}:{{ coalesce .Values.shippingService.image.tag .Values.images.tag .Chart.AppVersion }}
         ports:
         - containerPort: 50051
         env:
