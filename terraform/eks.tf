@@ -27,7 +27,7 @@ data "aws_ami" "eks_worker_ami" {
 
   filter {
     name   = "name"
-    values = ["amazon-eks-node-1.29-v*"] # Replace with your K8s version
+    values = ["amazon-eks-node-1.29-v*"] 
   }
 
   filter {
@@ -90,53 +90,8 @@ resource "aws_eks_addon" "kube_proxy" {
   cluster_name             = aws_eks_cluster.eks_cluster.name
   addon_name               = "kube-proxy"
   addon_version            = "v1.33.0-eksbuild.2" 
-  service_account_role_arn = null  # kube-proxy doesn't need a custom SA
+  service_account_role_arn = null 
   depends_on = [
     aws_eks_cluster.eks_cluster
   ]
-}
-
-
-# TEMPORARY 
-
-resource "aws_eks_node_group" "eks_node_group_public" {
-  cluster_name    = aws_eks_cluster.eks_cluster.name
-  node_group_name = "eks-node-group-public"
-  node_role_arn   = aws_iam_role.eks_node_role.arn
-  subnet_ids      = [aws_subnet.public_subnet_1a.id, aws_subnet.public_subnet_1b.id]
-
-  scaling_config {
-    desired_size = 1
-    max_size     = 1
-    min_size     = 1
-  }
-
-  launch_template {
-    id      = aws_launch_template.eks_node_template_public.id
-    version = "$Latest"
-  }
-
-  depends_on = [
-    aws_iam_role_policy_attachment.eks_worker_node,
-    aws_iam_role_policy_attachment.eks_cni,
-    aws_iam_role_policy_attachment.ecr_read_only
-  ]
-}
-resource "aws_launch_template" "eks_node_template_public" {
-  name_prefix   = "eks-node-public-"
-  image_id      = data.aws_ami.eks_worker_ami.id
-  instance_type = "t3.medium"
-  key_name      = "key_pair"  # 👈 Your EC2 key pair name
-
-  vpc_security_group_ids = [aws_security_group.eks_node_sg.id]
-
-  user_data = base64encode(<<-EOT
-    #!/bin/bash
-    /etc/eks/bootstrap.sh ${aws_eks_cluster.eks_cluster.name}
-  EOT
-  )
-
-  lifecycle {
-    create_before_destroy = true
-  }
 }

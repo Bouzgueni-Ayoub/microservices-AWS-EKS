@@ -41,25 +41,33 @@ resource "aws_iam_role_policy_attachment" "eks_cni" {
 resource "aws_iam_policy" "jenkins_inline_policy" {
   name = "JenkinsAdditionalPermissions"
 
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Action = [
-          "eks:*",
-          "ec2:Describe*",
-          "ec2:CreateTags",
-          "iam:GetRole",
-          "iam:PassRole",
-          "cloudformation:*",
-          "autoscaling:*",
-          "ecr:*"
-        ],
-        Resource = "*"
-      }
-    ]
-  })
+  policy = jsonencode(
+    {
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Effect": "Allow", "Action": ["sts:GetCallerIdentity"], "Resource": "*" },
+    { "Effect": "Allow", "Action": ["eks:DescribeCluster"], "Resource": "*" },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:CompleteLayerUpload",
+        "ecr:CreateRepository",
+        "ecr:DescribeImages",
+        "ecr:DescribeRepositories",
+        "ecr:InitiateLayerUpload",
+        "ecr:PutImage",
+        "ecr:UploadLayerPart",
+        "ecr:SetRepositoryPolicy"  
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+
+  )
 }
 
 resource "aws_iam_role_policy_attachment" "jenkins_inline_attach" {
@@ -71,6 +79,9 @@ resource "aws_iam_instance_profile" "jenkins_profile" {
   name = "JenkinsInstanceProfile"
   role = aws_iam_role.jenkins_role.name
 }
+// Is necessary for deployment to work
+//eksctl create iamidentitymapping  --cluster my-eks-cluster --region eu-central-1  --arn arn:aws:iam::054037117483:role/JenkinsEKSDeployerRole --group system:masters \ --username jenkins
+
 
 # EKS
 # EKS CLUSTER
