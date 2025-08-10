@@ -86,16 +86,18 @@ pipeline {
         echo "--- Building & pushing: ${svc} ---"
         sh """#!/usr/bin/env bash
         set -euo pipefail
+
         DOCKERFILE="src/${svc}/Dockerfile"
         CONTEXT="src/${svc}"
         IMAGE="${ECR_REGISTRY}/${svc}:${IMAGE_TAG}"
 
         docker version || true
-        # don't call 'docker buildx ...' since it's not installed (and not needed)
 
-        DOCKER_BUILDKIT=1 docker build -f "$DOCKERFILE" -t "$IMAGE" "$CONTEXT"
-        docker push "$IMAGE"
+        # BuildKit ON so \$BUILDPLATFORM etc. work
+        DOCKER_BUILDKIT=1 docker build -f "\$DOCKERFILE" -t "\$IMAGE" "\$CONTEXT"
+        docker push "\$IMAGE"
         """
+
       }
     }
   }
