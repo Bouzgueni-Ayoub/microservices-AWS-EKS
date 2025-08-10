@@ -76,29 +76,33 @@ pipeline {
     }
 
     stage('Build & Push changed images') {
-      when { expression { return env.CHANGED_SERVICES?.trim() } }
-      steps {
-        echo "=== Stage: BUILD & PUSH IMAGES ==="
-        script {
-          env.IMAGE_TAG = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
-          echo "Using IMAGE_TAG=${IMAGE_TAG}"
-          for (svc in env.CHANGED_SERVICES.split(' ')) {
-            echo "--- Building & pushing: ${svc} ---"
-            sh """
-              export DOCKER_BUILDKIT=1
-              export DOCKER_CLI_EXPERIMENTAL=enabled
-              DOCKERFILE="src/${svc}/Dockerfile"
-              CONTEXT="src/${svc}"
-              IMAGE="${ECR_REGISTRY}/${svc}:${IMAGE_TAG}"
+  when { expression { return env.CHANGED_SERVICES?.trim() } }
+  steps {
+    echo "=== Stage: BUILD & PUSH IMAGES ==="
+    script {
+      env.IMAGE_TAG = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+      echo "Using IMAGE_TAG=${IMAGE_TAG}"
+      for (svc in env.CHANGED_SERVICES.split(' ')) {
+        echo "--- Building & pushing: ${svc} ---"
+        sh """
+          set -euxo pipefail
+          DOCKERFILE="src/${svc}/Dockerfile"
+          CONTEXT="src/${svc}"
+          IMAGE="${ECR_REGISTRY}/${svc}:${IMAGE_TAG}"
 
-              echo "Building image: \$IMAGE"
-              docker build -f "\$DOCKERFILE" -t "\$IMAGE" "\$CONTEXT"
-              docker push "\$IMAGE"
-            """
-          }
-        }
+          docker version || true
+          docker buildx version || echo "buildx not installed (ok)"
+
+          # Force classic builder for this command only
+          DOCKER_BUILDKIT=0 DOCKER_CLI_EXPERIMENTAL= \\
+            docker build -f "\$DOCKERFILE" -t "\$IMAGE" "\$CONTEXT"
+          docker push "\$IMAGE"
+        """
       }
     }
+  }
+}
+
 
     stage('Helm upgrade (only changed services)') {
       when { expression { return env.CHANGED_SERVICES?.trim() } }
