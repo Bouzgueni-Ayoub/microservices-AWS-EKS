@@ -1,42 +1,50 @@
-# Copyright 2020 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# syntax=docker/dockerfile:1.7
 
-FROM --platform=$BUILDPLATFORM node:20.18.1-alpine@sha256:24fb6aa7020d9a20b00d6da6d1714187c45ed00d1eb4adb01395843c338b9372 AS builder
+# -------- deps / build stage
+FROM --platform=$BUILDPLATFORM node:20.18.1-alpine AS builder
 
-# Some packages (e.g. @google-cloud/profiler) require additional
-# deps for post-install scripts
-RUN apk add --update --no-cache \
-    python3 \
-    make \
-    g++
+# Some packages need toolchain for postinstall scripts
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /usr/src/app
 
+# Copy only manifests first to maximize layer cache
 COPY package*.json ./
 
-RUN npm install --only=production
+# CI-friendly npm defaults
+ENV CI=true \
+    NPM_CONFIG_AUDIT=false \
+    NPM_CONFIG_FUND=false \
+    NPM_CONFIG_UPDATE_NOTIFIER=false \
+    npm_config_loglevel=warn
 
-FROM alpine:3.20.3@sha256:1e42bbe2508154c9126d48c2b8a75420c3544343bf86fd041fb7527e017a4b4a
+# Use cache for npm and surface logs if something fails
+# If you don't have a lockfile, it falls back to npm install
+RUN --mount=type=cache,target=/root/.npm \
+    /bin/sh -c '\
+      if [ -f package-lock.json ]; then \
+        npm ci --omit=dev --no-audit --no-fund || \
+          { echo "=== NPM LOGS ==="; ls -l /root/.npm/_logs || true; cat /root/.npm/_logs/* || true; exit 1; }; \
+      else \
+        npm install --omit=dev --no-audit --no-fund || \
+          { echo "=== NPM LOGS ==="; ls -l /root/.npm/_logs || true; cat /root/.npm/_logs/* || true; exit 1; }; \
+      fi'
 
-RUN apk add --no-cache nodejs
+# -------- runtime stage
+# Keep Alpine→Alpine to avoid ABI mismatches and keep it simple
+FROM node:20.18.1-alpine
 
+ENV NODE_ENV=production
 WORKDIR /usr/src/app
 
+# Copy production node_modules from builder
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 
+# Then copy the app source
 COPY . .
 
 EXPOSE 50051
+# Optional: add a healthcheck if you have one
+# HEALTHCHECK CMD node healthcheck.js || exit 1
 
-ENTRYPOINT [ "node", "index.js" ]
+CMD ["node", "index.js"]
