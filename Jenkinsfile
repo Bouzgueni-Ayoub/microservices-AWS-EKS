@@ -97,7 +97,6 @@ pipeline {
         DOCKER_BUILDKIT=1 docker build -f "\$DOCKERFILE" -t "\$IMAGE" "\$CONTEXT"
         docker push "\$IMAGE"
         """
-
       }
     }
   }
