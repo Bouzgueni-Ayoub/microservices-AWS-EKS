@@ -85,6 +85,8 @@ pipeline {
           for (svc in env.CHANGED_SERVICES.split(' ')) {
             echo "--- Building & pushing: ${svc} ---"
             sh """
+              export DOCKER_BUILDKIT=1
+              export DOCKER_CLI_EXPERIMENTAL=enabled
               DOCKERFILE="src/${svc}/Dockerfile"
               CONTEXT="src/${svc}"
               IMAGE="${ECR_REGISTRY}/${svc}:${IMAGE_TAG}"
