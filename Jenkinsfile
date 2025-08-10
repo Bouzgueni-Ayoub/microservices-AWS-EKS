@@ -85,21 +85,17 @@ pipeline {
       for (svc in env.CHANGED_SERVICES.split(' ')) {
         echo "--- Building & pushing: ${svc} ---"
         sh """#!/usr/bin/env bash
-set -euo pipefail
+        set -euo pipefail
+        DOCKERFILE="src/${svc}/Dockerfile"
+        CONTEXT="src/${svc}"
+        IMAGE="${ECR_REGISTRY}/${svc}:${IMAGE_TAG}"
 
-DOCKERFILE="src/${svc}/Dockerfile"
-CONTEXT="src/${svc}"
-IMAGE="${ECR_REGISTRY}/${svc}:${IMAGE_TAG}"
+        docker version || true
+        # don't call 'docker buildx ...' since it's not installed (and not needed)
 
-docker version || true
-docker buildx version || echo "buildx not installed (ok)"
-
-# Force classic builder (no Buildx needed)
-DOCKER_BUILDKIT=0 DOCKER_CLI_EXPERIMENTAL= \\
-  docker build -f "\$DOCKERFILE" -t "\$IMAGE" "\$CONTEXT"
-
-docker push "\$IMAGE"
-"""
+        DOCKER_BUILDKIT=1 docker build -f "$DOCKERFILE" -t "$IMAGE" "$CONTEXT"
+        docker push "$IMAGE"
+        """
       }
     }
   }
