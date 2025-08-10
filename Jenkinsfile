@@ -84,24 +84,27 @@ pipeline {
       echo "Using IMAGE_TAG=${IMAGE_TAG}"
       for (svc in env.CHANGED_SERVICES.split(' ')) {
         echo "--- Building & pushing: ${svc} ---"
-        sh """
-          set -euxo pipefail
-          DOCKERFILE="src/${svc}/Dockerfile"
-          CONTEXT="src/${svc}"
-          IMAGE="${ECR_REGISTRY}/${svc}:${IMAGE_TAG}"
+        sh """#!/usr/bin/env bash
+set -euo pipefail
 
-          docker version || true
-          docker buildx version || echo "buildx not installed (ok)"
+DOCKERFILE="src/${svc}/Dockerfile"
+CONTEXT="src/${svc}"
+IMAGE="${ECR_REGISTRY}/${svc}:${IMAGE_TAG}"
 
-          # Force classic builder for this command only
-          DOCKER_BUILDKIT=0 DOCKER_CLI_EXPERIMENTAL= \\
-            docker build -f "\$DOCKERFILE" -t "\$IMAGE" "\$CONTEXT"
-          docker push "\$IMAGE"
-        """
+docker version || true
+docker buildx version || echo "buildx not installed (ok)"
+
+# Force classic builder (no Buildx needed)
+DOCKER_BUILDKIT=0 DOCKER_CLI_EXPERIMENTAL= \\
+  docker build -f "\$DOCKERFILE" -t "\$IMAGE" "\$CONTEXT"
+
+docker push "\$IMAGE"
+"""
       }
     }
   }
 }
+
 
 
     stage('Helm upgrade (only changed services)') {
