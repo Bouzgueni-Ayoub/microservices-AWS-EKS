@@ -96,6 +96,9 @@ pipeline {
         # BuildKit ON so \$BUILDPLATFORM etc. work
         DOCKER_BUILDKIT=1 docker build -f "\$DOCKERFILE" -t "\$IMAGE" "\$CONTEXT"
         docker push "\$IMAGE"
+
+        docker rmi "\$IMAGE" || true          # remove the local tag
+        docker image prune -f || true         # drop dangling layers
         """
       }
     }
