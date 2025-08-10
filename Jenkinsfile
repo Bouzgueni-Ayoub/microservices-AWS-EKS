@@ -1,6 +1,6 @@
 pipeline {
   agent any
-  options { timestamps(); ansiColor('xterm') }
+  options { timestamps() }
 
   environment {
     AWS_REGION       = 'eu-central-1'
