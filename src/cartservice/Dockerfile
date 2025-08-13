@@ -1,41 +1,42 @@
-# Copyright 2021 Google LLC !
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# syntax=docker/dockerfile:1.7
 
-# https://mcr.microsoft.com/product/dotnet/sdk
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0.101-noble@sha256:1f13e67d295e02abdfd187c341f887442bad611eda536766172ced401fc8b9fa AS builder
+ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /app
+
+# Map Docker arch -> .NET arch + RID
+# amd64 -> x64 / linux-x64
+# arm64 -> arm64 / linux-arm64
+# 386   -> x86 / linux-x86 (rare)
+RUN case "$TARGETARCH" in \
+      amd64) echo x64  > /tmp/dotnet_arch && echo linux-x64  > /tmp/dotnet_rid ;; \
+      arm64) echo arm64> /tmp/dotnet_arch && echo linux-arm64> /tmp/dotnet_rid ;; \
+      386)   echo x86  > /tmp/dotnet_arch && echo linux-x86  > /tmp/dotnet_rid ;; \
+      *)     echo "Unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+    esac
+ENV DOTNET_ARCH=$(cat /tmp/dotnet_arch)
+ENV DOTNET_RID=$(cat /tmp/dotnet_rid)
+
+# Copy project file first to leverage restore layer cache
 COPY cartservice.csproj .
-RUN dotnet restore cartservice.csproj \
-    -a $TARGETARCH
+
+# Use BuildKit cache for NuGet, restore for the target RID
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet restore cartservice.csproj \
+      -r $DOTNET_RID
+
+# Copy the rest of the sources
 COPY . .
-RUN dotnet publish cartservice.csproj \
-    -p:PublishSingleFile=true \
-    -a $TARGETARCH \
-    --self-contained true \
-    -p:PublishTrimmed=true \
-    -p:TrimMode=full \
-    -c release \
-    -o /cartservice
 
-# https://mcr.microsoft.com/product/dotnet/runtime-deps
-FROM mcr.microsoft.com/dotnet/runtime-deps:9.0.1-noble-chiseled@sha256:6f7466eda39e24efaf7eab2325e15d776a685d13cc93b4ea0cde9ee4f7982210
-
-WORKDIR /app
-COPY --from=builder /cartservice .
-EXPOSE 7070
-ENV DOTNET_EnableDiagnostics=0 \
-    ASPNETCORE_HTTP_PORTS=7070
-USER 1000
-ENTRYPOINT ["/app/cartservice"]
+# Publish self-contained, single file for the mapped arch+RID
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet publish cartservice.csproj \
+      -c Release \
+      -a $DOTNET_ARCH \
+      -r $DOTNET_RID \
+      --self-contained true \
+      -p:PublishSingleFile=true \
+      -p:PublishTrimmed=true \
+      -p:TrimMode=full \
+      -o /cartservice
