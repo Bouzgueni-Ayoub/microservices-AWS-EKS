@@ -75,55 +75,44 @@ pipeline {
       }
     }
 
-    stage('Build & Push changed images') {
+stage('Build & Push changed images') {
   when { expression { return env.CHANGED_SERVICES?.trim() } }
   steps {
     echo "=== Stage: BUILD & PUSH IMAGES ==="
     script {
       env.IMAGE_TAG = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
       echo "Using IMAGE_TAG=${IMAGE_TAG}"
-      for (svc in env.CHANGED_SERVICES.split(' ')) {
-        echo "--- Building & pushing: ${svc} ---"
-      sh """#!/usr/bin/env bash
+
+      // Ensure a buildx builder exists (once)
+      sh '''#!/usr/bin/env bash
 set -euo pipefail
-
-DOCKERFILE="src/${svc}/Dockerfile"
-CONTEXT="src/${svc}"
-IMAGE="${ECR_REGISTRY}/${svc}:${IMAGE_TAG}"
-
 docker version || true
 docker buildx version || true
-
-# ECR login
-aws ecr get-login-password --region "\${AWS_REGION}" \
-| docker login --username AWS --password-stdin "\${ECR_REGISTRY}"
-
-# Ensure a buildx builder exists and is active
 docker buildx create --name jxbuilder --use >/dev/null 2>&1 || docker buildx use jxbuilder
 docker buildx inspect --bootstrap >/dev/null 2>&1 || true
+'''
 
-# Build and push directly to ECR (no local --load)
-docker buildx build \
-  --progress=plain \
-  --platform linux/amd64 \
-  -f "\${DOCKERFILE}" \
-  -t "\${IMAGE}" \
-  --cache-from=type=registry,ref="\${ECR_REGISTRY}/\${svc}:buildcache" \
-  --cache-to=type=registry,ref="\${ECR_REGISTRY}/\${svc}:buildcache,mode=max" \
-  --provenance=false --sbom=false \
-  --push \
-  "\${CONTEXT}"
+      for (svc in env.CHANGED_SERVICES.split(' ')) {
+        echo "--- Building & pushing: ${svc} ---"
+        sh """#!/usr/bin/env bash
+set -euo pipefail
 
-# Optional cleanup
-docker buildx prune -f || true
+docker buildx build \\
+  --progress=plain \\
+  --platform linux/amd64 \\
+  -f "src/${svc}/Dockerfile" \\
+  -t "${ECR_REGISTRY}/${svc}:${IMAGE_TAG}" \\
+  --cache-from=type=registry,ref="${ECR_REGISTRY}/${svc}:buildcache" \\
+  --cache-to=type=registry,ref="${ECR_REGISTRY}/${svc}:buildcache,mode=max" \\
+  --provenance=false --sbom=false \\
+  --push \\
+  "src/${svc}"
 """
-
-
-
       }
     }
   }
 }
+
 
 
 
