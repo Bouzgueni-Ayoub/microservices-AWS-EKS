@@ -92,14 +92,22 @@ pipeline {
         IMAGE="${ECR_REGISTRY}/${svc}:${IMAGE_TAG}"
 
         docker version || true
+        docker buildx version || true
 
-        # BuildKit ON so \$BUILDPLATFORM etc. work
-        DOCKER_BUILDKIT=1 docker build -f "\$DOCKERFILE" -t "\$IMAGE" "\$CONTEXT"
-        docker push "\$IMAGE"
+        # Build with buildx, show full logs, load into daemon so 'docker push' works
+        docker buildx build \
+          --progress=plain \
+          --platform linux/amd64 \
+          -f "$DOCKERFILE" -t "$IMAGE" "$CONTEXT" \
+          --load
 
-        docker rmi "\$IMAGE" || true          # remove the local tag
-        docker image prune -f || true         # drop dangling layers
+        docker push "$IMAGE"
+
+        # cleanup
+        docker rmi "$IMAGE" || true
+        docker image prune -f || true
         """
+
       }
     }
   }
