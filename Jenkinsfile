@@ -84,28 +84,40 @@ pipeline {
       echo "Using IMAGE_TAG=${IMAGE_TAG}"
       for (svc in env.CHANGED_SERVICES.split(' ')) {
         echo "--- Building & pushing: ${svc} ---"
-       sh """#!/usr/bin/env bash
+      sh """#!/usr/bin/env bash
 set -euo pipefail
 
-DOCKERFILE="src/${svc}/Dockerfile"
-CONTEXT="src/${svc}"
-IMAGE="${ECR_REGISTRY}/${svc}:${IMAGE_TAG}"
+DOCKERFILE="src/\${svc}/Dockerfile"
+CONTEXT="src/\${svc}"
+IMAGE="\${ECR_REGISTRY}/\${svc}:\${IMAGE_TAG}"
 
 docker version || true
 docker buildx version || true
 
-# Build with buildx, show full logs, load into daemon so 'docker push' works
+# ECR login
+aws ecr get-login-password --region "\${AWS_REGION}" \
+| docker login --username AWS --password-stdin "\${ECR_REGISTRY}"
+
+# Ensure a buildx builder exists and is active
+docker buildx create --name jxbuilder --use >/dev/null 2>&1 || docker buildx use jxbuilder
+docker buildx inspect --bootstrap >/dev/null 2>&1 || true
+
+# Build and push directly to ECR (no local --load)
 docker buildx build \
   --progress=plain \
   --platform linux/amd64 \
-  -f "\$DOCKERFILE" -t "\$IMAGE" "\$CONTEXT" 
+  -f "\${DOCKERFILE}" \
+  -t "\${IMAGE}" \
+  --cache-from=type=registry,ref="\${ECR_REGISTRY}/\${svc}:buildcache" \
+  --cache-to=type=registry,ref="\${ECR_REGISTRY}/\${svc}:buildcache,mode=max" \
+  --provenance=false --sbom=false \
+  --push \
+  "\${CONTEXT}"
 
-docker push "\$IMAGE"
-
-# cleanup
-docker rmi "\$IMAGE" || true
-docker image prune -f || true
+# Optional cleanup
+docker buildx prune -f || true
 """
+
 
 
       }
