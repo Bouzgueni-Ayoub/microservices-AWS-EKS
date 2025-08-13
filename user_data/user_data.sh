@@ -4,13 +4,12 @@ export DEBIAN_FRONTEND=noninteractive
 
 echo ">>> Base update & essentials"
 apt-get update -y
-apt-get upgrade -y
-apt-get install -y unzip curl gnupg ca-certificates lsb-release
+apt-get install -y unzip curl gnupg ca-certificates lsb-release jq
 
-echo ">>> Java 11 & 17"
-apt-get install -y openjdk-11-jdk openjdk-17-jdk
-# (Optional) make Java 17 default:
-# update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java || true
+echo ">>> Java 17 (only) and set default"
+apt-get install -y openjdk-17-jdk
+update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java || true
+java -version || true
 
 echo ">>> AWS CLI v2"
 curl -sSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -33,20 +32,28 @@ chmod a+r /etc/apt/keyrings/docker.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" \
   | tee /etc/apt/sources.list.d/docker.list >/dev/null
 
-echo ">>> Install Jenkins + Docker CE (with buildx & compose)"
+echo ">>> Install pinned Jenkins LTS + Docker CE"
 apt-get update -y
-# Remove Ubuntu's docker.io if preinstalled by an image (idempotent)
+
+# Pick a stable LTS available in your repo; adjust if needed:
+JENKINS_VERSION="2.462.3"
+# If that version isn't available, install the default then hold.
+if apt-cache policy jenkins | grep -q "${JENKINS_VERSION}"; then
+  apt-get install -y jenkins=${JENKINS_VERSION}
+else
+  apt-get install -y jenkins
+fi
+apt-mark hold jenkins
+
+# Remove Ubuntu docker.io if present (idempotent), then install Docker CE stack
 apt-get remove -y docker.io docker-doc docker-compose podman-docker containerd runc || true
-apt-get install -y \
-  jenkins \
-  docker-ce docker-ce-cli containerd.io \
-  docker-buildx-plugin docker-compose-plugin
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 echo ">>> Enable Docker & allow jenkins to use it"
 systemctl enable --now docker
 usermod -aG docker jenkins
 
-# Enable BuildKit by default (recommended)
+# Enable BuildKit by default
 mkdir -p /etc/docker
 cat >/etc/docker/daemon.json <<'JSON'
 {
@@ -54,6 +61,79 @@ cat >/etc/docker/daemon.json <<'JSON'
 }
 JSON
 systemctl restart docker
+
+echo ">>> Configure Jenkins: skip setup wizard, create admin user"
+install -d -o jenkins -g jenkins /var/lib/jenkins/init.groovy.d
+cat >/var/lib/jenkins/init.groovy.d/basic-security.groovy <<'GROOVY'
+import jenkins.model.*
+import hudson.security.*
+
+def instance = Jenkins.get()
+def realm = new HudsonPrivateSecurityRealm(false)
+if (realm.getAllUsers().find{ it.id == "admin" } == null) {
+  realm.createAccount("admin", "changeme123")
+}
+instance.setSecurityRealm(realm)
+def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
+strategy.setAllowAnonymousRead(false)
+instance.setAuthorizationStrategy(strategy)
+instance.save()
+GROOVY
+chown -R jenkins:jenkins /var/lib/jenkins/init.groovy.d
+
+# Mark install as complete to bypass Setup Wizard
+su -s /bin/bash -c '
+  mkdir -p /var/lib/jenkins
+  echo 2.0 > /var/lib/jenkins/jenkins.install.UpgradeWizard.state
+  echo 2.0 > /var/lib/jenkins/jenkins.install.InstallUtil.lastExecVersion
+' jenkins
+
+echo ">>> Start Jenkins"
+systemctl enable jenkins
+systemctl restart jenkins
+
+echo ">>> Wait for Jenkins to be up..."
+for i in {1..60}; do
+  if curl -sf http://localhost:8080/login > /dev/null; then
+    echo "Jenkins is up."
+    break
+  fi
+  sleep 2
+done
+
+echo ">>> Jenkins CLI download"
+curl -fsSL -o /tmp/jenkins-cli.jar http://localhost:8080/jnlpJars/jenkins-cli.jar
+
+# Admin creds for CLI
+JENKINS_URL="http://localhost:8080"
+JENKINS_AUTH="admin:changeme123"
+
+echo ">>> Install required plugins (let Jenkins resolve compatible versions)"
+# Keep this list lean; Jenkins will pull compatible deps for the pinned core
+PLUGINS=(
+  "workflow-aggregator"
+  "pipeline-stage-view"
+  "pipeline-graph-view"
+  "pipeline-groovy-lib"
+  "pipeline-model-definition"
+  "pipeline-multibranch"
+  "git"
+  "git-client"
+  "github"
+  "github-branch-source"
+  "junit"
+  "matrix-project"
+  "ws-cleanup"
+  "echarts-api"
+  "bootstrap5-api"
+)
+
+for p in "${PLUGINS[@]}"; do
+  java -jar /tmp/jenkins-cli.jar -s "$JENKINS_URL" -auth "$JENKINS_AUTH" install-plugin "$p" || true
+done
+
+echo ">>> Safe restart Jenkins to load plugins"
+java -jar /tmp/jenkins-cli.jar -s "$JENKINS_URL" -auth "$JENKINS_AUTH" safe-restart || true
 
 echo ">>> kubectl"
 KUBECTL_VERSION="$(curl -sL https://dl.k8s.io/release/stable.txt)"
@@ -70,8 +150,4 @@ sudo -u jenkins -H bash -lc '
   docker buildx inspect --bootstrap || true
 '
 
-echo ">>> Start/Restart Jenkins (pick up docker group)"
-systemctl enable jenkins
-systemctl restart jenkins
-
-echo ">>> All set: Jenkins on 8080; Docker+Buildx, kubectl, Helm installed."
+echo ">>> DONE: Jenkins (pinned) + Plugins installed, Docker+Buildx, kubectl, Helm."
