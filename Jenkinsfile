@@ -87,9 +87,9 @@ pipeline {
       sh """#!/usr/bin/env bash
 set -euo pipefail
 
-DOCKERFILE="src/\${svc}/Dockerfile"
-CONTEXT="src/\${svc}"
-IMAGE="\${ECR_REGISTRY}/\${svc}:\${IMAGE_TAG}"
+DOCKERFILE="src/${svc}/Dockerfile"
+CONTEXT="src/${svc}"
+IMAGE="${ECR_REGISTRY}/${svc}:${IMAGE_TAG}"
 
 docker version || true
 docker buildx version || true
