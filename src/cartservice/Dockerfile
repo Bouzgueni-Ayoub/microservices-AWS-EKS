@@ -16,24 +16,22 @@ RUN case "$TARGETARCH" in \
 # Copy project file first to leverage restore layer cache
 COPY cartservice.csproj .
 
-# Restore using computed RID (no ENV; inject vars inline)
+# Restore using computed RID
 RUN --mount=type=cache,target=/root/.nuget/packages \
-    DOTNET_ARCH="$(cat /tmp/dotnet_arch)" \
     DOTNET_RID="$(cat /tmp/dotnet_rid)" \
     dotnet restore cartservice.csproj -r "$DOTNET_RID"
 
 # Copy the rest
 COPY . .
 
-# Publish using the same computed values
+# Publish (drop -a; RID already includes arch)
 RUN --mount=type=cache,target=/root/.nuget/packages \
-    DOTNET_ARCH="$(cat /tmp/dotnet_arch)" \
     DOTNET_RID="$(cat /tmp/dotnet_rid)" \
     dotnet publish cartservice.csproj \
       -c Release \
-      -a "$DOTNET_ARCH" \
       -r "$DOTNET_RID" \
       --self-contained true \
+      --no-restore \
       -p:PublishSingleFile=true \
       -p:PublishTrimmed=true \
       -p:TrimMode=full \
