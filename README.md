@@ -6,3 +6,6 @@ checkoutservice done
 currency service done 
 emailservice done 
 frontend done 
+loadgenerator done 
+paymentservice done
+productcatalogueservice done
