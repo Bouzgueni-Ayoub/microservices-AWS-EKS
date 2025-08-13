@@ -107,6 +107,9 @@ docker buildx build \\
   --provenance=false --sbom=false \\
   --push \\
   "src/${svc}"
+
+  # Clean BuildKit cache to free disk before the next service
+  docker buildx prune -af --verbose || true
 """
       }
     }
