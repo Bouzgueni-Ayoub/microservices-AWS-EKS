@@ -4,3 +4,4 @@ adservice done
 cartservice done 
 checkoutservice done 
 currency service done 
+emailservice done 
