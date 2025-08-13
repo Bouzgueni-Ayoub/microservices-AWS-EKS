@@ -98,7 +98,7 @@ pipeline {
         docker buildx build \
           --progress=plain \
           --platform linux/amd64 \
-          -f "$DOCKERFILE" -t "$IMAGE" "$CONTEXT" \
+          -f "\$DOCKERFILE" -t "\$IMAGE" "\$CONTEXT" \
           --load
 
         docker push "$IMAGE"
