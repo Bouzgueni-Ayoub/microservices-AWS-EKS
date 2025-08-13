@@ -4,7 +4,7 @@ FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0.101-noble@sha256
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /app
-
+# TEST
 # Map Docker arch -> .NET arch + RID
 # amd64 -> x64 / linux-x64
 # arm64 -> arm64 / linux-arm64
