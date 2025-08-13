@@ -98,8 +98,7 @@ docker buildx version || true
 docker buildx build \
   --progress=plain \
   --platform linux/amd64 \
-  -f "\$DOCKERFILE" -t "\$IMAGE" "\$CONTEXT" \
-  --load
+  -f "\$DOCKERFILE" -t "\$IMAGE" "\$CONTEXT" 
 
 docker push "\$IMAGE"
 
