@@ -84,29 +84,30 @@ pipeline {
       echo "Using IMAGE_TAG=${IMAGE_TAG}"
       for (svc in env.CHANGED_SERVICES.split(' ')) {
         echo "--- Building & pushing: ${svc} ---"
-        sh """#!/usr/bin/env bash
-        set -euo pipefail
+       sh """#!/usr/bin/env bash
+set -euo pipefail
 
-        DOCKERFILE="src/${svc}/Dockerfile"
-        CONTEXT="src/${svc}"
-        IMAGE="${ECR_REGISTRY}/${svc}:${IMAGE_TAG}"
+DOCKERFILE="src/${svc}/Dockerfile"
+CONTEXT="src/${svc}"
+IMAGE="${ECR_REGISTRY}/${svc}:${IMAGE_TAG}"
 
-        docker version || true
-        docker buildx version || true
+docker version || true
+docker buildx version || true
 
-        # Build with buildx, show full logs, load into daemon so 'docker push' works
-        docker buildx build \
-          --progress=plain \
-          --platform linux/amd64 \
-          -f "\$DOCKERFILE" -t "\$IMAGE" "\$CONTEXT" \
-          --load
+# Build with buildx, show full logs, load into daemon so 'docker push' works
+docker buildx build \
+  --progress=plain \
+  --platform linux/amd64 \
+  -f "\$DOCKERFILE" -t "\$IMAGE" "\$CONTEXT" \
+  --load
 
-        docker push "$IMAGE"
+docker push "\$IMAGE"
 
-        # cleanup
-        docker rmi "$IMAGE" || true
-        docker image prune -f || true
-        """
+# cleanup
+docker rmi "\$IMAGE" || true
+docker image prune -f || true
+"""
+
 
       }
     }
