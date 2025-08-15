@@ -105,6 +105,7 @@ systemctl restart jenkins
 ########################################################################
 # Verification (non-fatal)
 ########################################################################
+
 echo ">>> Verifying Docker + BuildKit..."
 docker info --format '{{json .ClientInfo}}' | grep -i Buildx || true
 docker buildx version || true
