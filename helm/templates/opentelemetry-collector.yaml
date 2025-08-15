@@ -70,8 +70,6 @@ spec:
           mountPath: /conf
       {{- end }}
       containers:
-      # This gateway container will receive traces and metrics from each microservice
-      # and forward it to GCP
       - name: otel-gateway
         securityContext:
           allowPrivilegeEscalation: false
@@ -87,14 +85,12 @@ spec:
         - name: collector-gateway-config
           mountPath: /conf
       volumes:
-      # Simple ConfigMap volume with template file
       - name: collector-gateway-config-template
         configMap:
           items:
           - key: collector-gateway-config-template.yaml
             path: collector-gateway-config-template.yaml
           name: collector-gateway-config-template
-      # Create a volume to store the expanded template (with correct cloud project ID)
       - name: collector-gateway-config
         emptyDir: {}
 ---

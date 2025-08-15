@@ -1,19 +1,22 @@
-# EKS CLUSTER
+# ---------------------------
+# EKS Cluster
+# ---------------------------
 resource "aws_eks_cluster" "eks_cluster" {
   name     = "my-eks-cluster"
   role_arn = aws_iam_role.eks_cluster_role.arn
 
   vpc_config {
+    # Mix of public and private subnets so cluster can expose services publicly if needed
     subnet_ids = [
       aws_subnet.public_subnet_1a.id,
       aws_subnet.public_subnet_1b.id,
       aws_subnet.private_subnet_1a.id,
       aws_subnet.private_subnet_1b.id
     ]
-    
   }
+
   access_config {
-    authentication_mode = "API_AND_CONFIG_MAP" 
+    authentication_mode = "API_AND_CONFIG_MAP" # Allow both IAM & aws-auth ConfigMap auth
   }
 
   depends_on = [
@@ -21,16 +24,16 @@ resource "aws_eks_cluster" "eks_cluster" {
   ]
 }
 
-# EKS NODE GROUP
-
+# ---------------------------
+# EKS Node Group AMI
+# ---------------------------
 data "aws_ami" "eks_worker_ami" {
   most_recent = true
-
-  owners = ["602401143452"] # Amazon EKS AMI owner
+  owners      = ["602401143452"] # Official EKS AMI owner
 
   filter {
     name   = "name"
-    values = ["amazon-eks-node-1.29-v*"] 
+    values = ["amazon-eks-node-1.29-v*"]
   }
 
   filter {
@@ -39,18 +42,23 @@ data "aws_ami" "eks_worker_ami" {
   }
 }
 
-
+# ---------------------------
+# EKS Node Group
+# ---------------------------
 resource "aws_eks_node_group" "eks_node_group" {
   cluster_name    = aws_eks_cluster.eks_cluster.name
   node_group_name = "eks-node-group"
   node_role_arn   = aws_iam_role.eks_node_role.arn
-  subnet_ids      = [aws_subnet.private_subnet_1a.id,aws_subnet.private_subnet_1b.id]
+
+  # Nodes run in private subnets for security
+  subnet_ids      = [aws_subnet.private_subnet_1a.id, aws_subnet.private_subnet_1b.id]
 
   scaling_config {
     desired_size = 2
     max_size     = 3
     min_size     = 1
   }
+
   launch_template {
     id      = aws_launch_template.eks_node_template.id
     version = "$Latest"
@@ -63,14 +71,19 @@ resource "aws_eks_node_group" "eks_node_group" {
   ]
 }
 
+# ---------------------------
+# Launch Template for Nodes
+# ---------------------------
 resource "aws_launch_template" "eks_node_template" {
   name_prefix   = "eks-node-"
   image_id      = data.aws_ami.eks_worker_ami.id
   instance_type = "t3.medium"
 
-  vpc_security_group_ids = [aws_security_group.eks_node_sg.id,
-                            aws_eks_cluster.eks_cluster.vpc_config[0].cluster_security_group_id 
-    ]
+  # Attach both custom SG and the cluster's managed SG
+  vpc_security_group_ids = [
+    aws_security_group.eks_node_sg.id,
+    aws_eks_cluster.eks_cluster.vpc_config[0].cluster_security_group_id
+  ]
 
   user_data = base64encode(<<-EOT
     #!/bin/bash
@@ -83,17 +96,21 @@ resource "aws_launch_template" "eks_node_template" {
   }
 }
 
-# EKS ADDONS 
+# ---------------------------
+# EKS Add-ons
+# ---------------------------
+
 resource "aws_eks_addon" "vpc_cni" {
   cluster_name = aws_eks_cluster.eks_cluster.name
-  addon_name   = "vpc-cni"
+  addon_name   = "vpc-cni" # Manages pod networking
 }
 
 resource "aws_eks_addon" "kube_proxy" {
   cluster_name             = aws_eks_cluster.eks_cluster.name
-  addon_name               = "kube-proxy"
-  addon_version            = "v1.33.0-eksbuild.2" 
-  service_account_role_arn = null 
+  addon_name               = "kube-proxy" # Handles service networking
+  addon_version            = "v1.33.0-eksbuild.2"
+  service_account_role_arn = null
+
   depends_on = [
     aws_eks_cluster.eks_cluster
   ]

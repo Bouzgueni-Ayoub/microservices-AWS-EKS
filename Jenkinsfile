@@ -1,22 +1,30 @@
 pipeline {
   agent any
-  options { timestamps() }
+  options { timestamps() } // Show timestamps in build logs
 
   environment {
+    // AWS/ECR config
     AWS_REGION       = 'eu-central-1'
     AWS_ACCOUNT_ID   = '054037117483'
     ECR_REGISTRY     = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
+    // EKS config
     EKS_CLUSTER      = 'my-eks-cluster'
     KUBE_NAMESPACE   = 'default'
 
+    // Helm config
     CHART_PATH       = 'helm'
     RELEASE_NAME     = 'my-app'
 
+    // Only build/deploy these services if they change
     SERVICES_WHITELIST = 'adservice cartservice checkoutservice currencyservice emailservice frontend loadgenerator paymentservice productcatalogservice recommendationservice redis-cart shippingservice'
   }
 
   stages {
+
+    // ---------------------------
+    // 1. Checkout repository
+    // ---------------------------
     stage('Checkout') {
       steps {
         echo "=== Stage: CHECKOUT ==="
@@ -25,10 +33,14 @@ pipeline {
       }
     }
 
+    // ---------------------------
+    // 2. Detect which services changed
+    // ---------------------------
     stage('Figure out changed services') {
       steps {
         echo "=== Stage: DETECT CHANGES ==="
         script {
+          // Find base commit for comparison
           def base = sh(returnStdout: true, script: '''
             git fetch --quiet origin || true
             if [ -n "${GIT_PREVIOUS_SUCCESSFUL_COMMIT}" ]; then
@@ -40,6 +52,7 @@ pipeline {
 
           echo "Base commit for diff: ${base}"
 
+          // List changed top-level service directories
           def changed = sh(returnStdout: true, script: """
             if [ -z "${base}" ]; then
               echo "${SERVICES_WHITELIST}"
@@ -50,6 +63,7 @@ pipeline {
             fi
           """).trim().split('\n').findAll { it?.trim() }
 
+          // Filter against whitelist
           def allowed = SERVICES_WHITELIST.split(' ')
           def targets = changed.findAll { allowed.contains(it) }
 
@@ -64,6 +78,9 @@ pipeline {
       }
     }
 
+    // ---------------------------
+    // 3. AWS ECR login
+    // ---------------------------
     stage('AWS / ECR Login') {
       when { expression { return env.CHANGED_SERVICES?.trim() } }
       steps {
@@ -75,55 +92,61 @@ pipeline {
       }
     }
 
-stage('Build & Push changed images') {
-  when { expression { return env.CHANGED_SERVICES?.trim() } }
-  steps {
-    echo "=== Stage: BUILD & PUSH IMAGES ==="
-    script {
-      env.IMAGE_TAG = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
-      echo "Using IMAGE_TAG=${IMAGE_TAG}"
+    // ---------------------------
+    // 4. Build & Push only changed images
+    // ---------------------------
+    stage('Build & Push changed images') {
+      when { expression { return env.CHANGED_SERVICES?.trim() } }
+      steps {
+        echo "=== Stage: BUILD & PUSH IMAGES ==="
+        script {
+          // Use short Git commit hash as image tag
+          env.IMAGE_TAG = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+          echo "Using IMAGE_TAG=${IMAGE_TAG}"
 
-      // Ensure a buildx builder exists (once)
-      sh '''#!/usr/bin/env bash
-set -euo pipefail
-docker version || true
-docker buildx version || true
-docker buildx create --name jxbuilder --use >/dev/null 2>&1 || docker buildx use jxbuilder
-docker buildx inspect --bootstrap >/dev/null 2>&1 || true
-'''
+          // Ensure Docker Buildx is available
+          sh '''#!/usr/bin/env bash
+          set -euo pipefail
+          docker version || true
+          docker buildx version || true
+          docker buildx create --name jxbuilder --use >/dev/null 2>&1 || docker buildx use jxbuilder
+          docker buildx inspect --bootstrap >/dev/null 2>&1 || true
+          '''
 
-      for (svc in env.CHANGED_SERVICES.split(' ')) {
-        echo "--- Building & pushing: ${svc} ---"
-        sh """#!/usr/bin/env bash
-set -euo pipefail
+          // Build & push each changed service
+          for (svc in env.CHANGED_SERVICES.split(' ')) {
+            echo "--- Building & pushing: ${svc} ---"
+            sh """#!/usr/bin/env bash
+            set -euo pipefail
 
-docker buildx build \\
-  --progress=plain \\
-  --platform linux/amd64 \\
-  -f "src/${svc}/Dockerfile" \\
-  -t "${ECR_REGISTRY}/${svc}:${IMAGE_TAG}" \\
-  --cache-from=type=registry,ref="${ECR_REGISTRY}/${svc}:buildcache" \\
-  --cache-to=type=registry,ref="${ECR_REGISTRY}/${svc}:buildcache,mode=max" \\
-  --provenance=false --sbom=false \\
-  --push \\
-  "src/${svc}"
+            docker buildx build \\
+              --progress=plain \\
+              --platform linux/amd64 \\
+              -f "src/${svc}/Dockerfile" \\
+              -t "${ECR_REGISTRY}/${svc}:${IMAGE_TAG}" \\
+              --cache-from=type=registry,ref="${ECR_REGISTRY}/${svc}:buildcache" \\
+              --cache-to=type=registry,ref="${ECR_REGISTRY}/${svc}:buildcache,mode=max" \\
+              --provenance=false --sbom=false \\
+              --push \\
+              "src/${svc}"
 
-  # Clean BuildKit cache to free disk before the next service
-  docker buildx prune -af --verbose || true
-"""
+              # Free up disk space after each build
+              docker buildx prune -af --verbose || true
+              """
+          }
+        }
       }
     }
-  }
-}
 
-
-
-
+    // ---------------------------
+    // 5. Helm upgrade only changed services
+    // ---------------------------
     stage('Helm upgrade (only changed services)') {
       when { expression { return env.CHANGED_SERVICES?.trim() } }
       steps {
         echo "=== Stage: HELM UPGRADE ==="
         sh '''
+          # Update kubeconfig for EKS cluster
           aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
 
           SET_OPTS=""
@@ -132,6 +155,7 @@ docker buildx build \\
             SET_OPTS="$SET_OPTS --set-string ${svc}.tag=${IMAGE_TAG}"
           done
 
+          # Upgrade or install Helm release
           helm upgrade --install "$RELEASE_NAME" "$CHART_PATH" \
             --reuse-values \
             --set-string images.repository="$ECR_REGISTRY" \
@@ -140,13 +164,16 @@ docker buildx build \\
             --create-namespace \
             --wait --timeout 10m
 
-          echo "Pods after upgrade:"
+          # Show pods after deployment
           kubectl -n "$KUBE_NAMESPACE" get pods
         '''
       }
     }
   }
 
+  // ---------------------------
+  // Post-build cleanup
+  // ---------------------------
   post {
     always {
       echo "=== Post build: Logout from ECR ==="
